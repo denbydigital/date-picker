@@ -336,9 +336,56 @@
     .big-emoji { font-size: 3.5rem; margin-bottom: 1rem; display: block; }
 
     /* ── Responsive tweaks ── */
-    @media (max-width: 480px) {
-      .card { padding: 2rem 1.5rem; }
-      .cuisine-grid { grid-template-columns: repeat(3, 1fr); }
+    @media (max-width: 600px) {
+      /* Let screens scroll vertically instead of clipping */
+      .screen {
+        position: fixed;
+        overflow-y: auto;
+        overflow-x: hidden;
+        align-items: stretch;
+        justify-content: flex-start;
+        padding: 1.5rem 1rem 2rem;
+      }
+
+      .card {
+        padding: 1.8rem 1.2rem;
+        border-radius: 1.4rem;
+        width: 100%;
+        max-width: 100%;
+      }
+
+      /* Cuisine: 2 columns so labels like "Mediterranean" don't clip */
+      .cuisine-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .cuisine-card .name {
+        font-size: .78rem;
+        word-break: break-word;
+      }
+
+      /* Restaurant grid: single column, no inner scroll — let the screen scroll */
+      .restaurant-grid {
+        grid-template-columns: 1fr;
+        max-height: none;
+        overflow: visible;
+      }
+
+      /* Full-width action buttons */
+      .btn-primary,
+      .btn-send,
+      .btn-secondary {
+        width: 100%;
+        text-align: center;
+      }
+
+      /* Landing buttons stack on very narrow screens */
+      #landing-buttons {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      #landing-buttons .btn-yes { width: 100%; }
+      /* No-spacer should also stretch */
+      #no-spacer { width: 100% !important; height: 53px !important; }
     }
   </style>
 </head>
