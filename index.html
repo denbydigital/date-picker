@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Will you go on a date with me? 💕</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --rose:       #e91e63;
+      --rose-dark:  #c2185b;
+      --rose-light: #f48fb1;
+      --blush:      #fce4ec;
+      --cream:      #fff8f9;
+      --text:       #3d1a24;
+      --muted:      #b06080;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Lato', sans-serif;
+      background: linear-gradient(135deg, #fce4ec 0%, #f8bbd0 40%, #f48fb1 100%);
+      overflow-x: hidden;
+    }
+
+    /* ── Floating hearts background ── */
+    #hearts-bg {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      overflow: hidden;
+    }
+    .heart-particle {
+      position: absolute;
+      bottom: -60px;
+      font-size: 1.4rem;
+      animation: floatUp linear infinite;
+      opacity: 0;
+    }
+    @keyframes floatUp {
+      0%   { transform: translateY(0) rotate(0deg); opacity: .5; }
+      80%  { opacity: .3; }
+      100% { transform: translateY(-110vh) rotate(30deg); opacity: 0; }
+    }
+
+    /* ── Screens ── */
+    .screen {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 2rem;
+      z-index: 1;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .5s ease, transform .5s ease;
+      transform: translateY(20px);
+    }
+    .screen.active {
+      opacity: 1;
+      pointer-events: all;
+      transform: translateY(0);
+    }
+
+    /* ── Card wrapper ── */
+    .card {
+      background: rgba(255,255,255,.88);
+      backdrop-filter: blur(12px);
+      border-radius: 2rem;
+      padding: 3rem 3.5rem;
+      text-align: center;
+      max-width: 620px;
+      width: 100%;
+      box-shadow: 0 8px 48px rgba(233,30,99,.18);
+    }
+
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.8rem, 5vw, 2.8rem);
+      color: var(--rose-dark);
+      line-height: 1.25;
+      margin-bottom: .75rem;
+    }
+    h1 em { font-style: italic; color: var(--rose); }
+
+    .subtitle {
+      font-size: 1rem;
+      color: var(--muted);
+      margin-bottom: 2rem;
+      font-weight: 300;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-block;
+      padding: .85rem 2.4rem;
+      border-radius: 3rem;
+      font-family: 'Lato', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn:active { transform: scale(.97); }
+
+    .btn-yes {
+      background: linear-gradient(135deg, var(--rose), var(--rose-dark));
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(233,30,99,.4);
+      font-size: 1.2rem;
+      padding: 1rem 3rem;
+    }
+    .btn-yes:hover { box-shadow: 0 6px 28px rgba(233,30,99,.55); }
+
+    .btn-no {
+      background: #fff;
+      color: var(--muted);
+      border: 2px solid var(--rose-light);
+      user-select: none;
+      /* starts in normal flow; JS lifts it to fixed on DOMContentLoaded */
+    }
+    .btn-no.floating {
+      position: fixed;
+      margin: 0;
+      z-index: 100;
+      transition: left .3s cubic-bezier(.17,.67,.43,1.3), top .3s cubic-bezier(.17,.67,.43,1.3);
+    }
+
+    .btn-secondary {
+      background: var(--blush);
+      color: var(--rose-dark);
+      box-shadow: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--rose), var(--rose-dark));
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(233,30,99,.35);
+    }
+
+    /* ── Yes/No row ── */
+    #landing-buttons {
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+      align-items: center;
+      margin-top: 2rem;
+    }
+
+    /* ── Date/time picker ── */
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+      margin: 1.5rem 0 2rem;
+      text-align: left;
+    }
+    label {
+      font-size: .8rem;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: .35rem;
+    }
+    input[type="date"],
+    input[type="time"] {
+      width: 100%;
+      padding: .85rem 1.2rem;
+      border: 2px solid var(--rose-light);
+      border-radius: 1rem;
+      font-family: 'Lato', sans-serif;
+      font-size: 1rem;
+      color: var(--text);
+      background: var(--cream);
+      outline: none;
+      transition: border-color .2s;
+    }
+    input[type="date"]:focus,
+    input[type="time"]:focus {
+      border-color: var(--rose);
+    }
+
+    /* ── Cuisine grid ── */
+    .cuisine-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: .9rem;
+      margin: 1.5rem 0 2rem;
+    }
+    .cuisine-card {
+      background: var(--cream);
+      border: 2.5px solid transparent;
+      border-radius: 1.2rem;
+      padding: 1rem .7rem;
+      cursor: pointer;
+      transition: border-color .2s, background .2s, transform .15s, box-shadow .2s;
+      text-align: center;
+    }
+    .cuisine-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 16px rgba(233,30,99,.15);
+    }
+    .cuisine-card.selected {
+      border-color: var(--rose);
+      background: #fff0f5;
+      box-shadow: 0 4px 16px rgba(233,30,99,.2);
+    }
+    .cuisine-card .emoji { font-size: 2.2rem; display: block; margin-bottom: .4rem; }
+    .cuisine-card .name { font-size: .82rem; font-weight: 700; color: var(--text); }
+
+    /* ── Restaurant results ── */
+    .restaurant-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0 2rem;
+      max-height: 52vh;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .restaurant-grid::-webkit-scrollbar { width: 5px; }
+    .restaurant-grid::-webkit-scrollbar-thumb { background: var(--rose-light); border-radius: 10px; }
+
+    .restaurant-card {
+      background: var(--cream);
+      border-radius: 1.4rem;
+      padding: 1.2rem 1.1rem;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: border-color .2s, transform .2s, box-shadow .2s;
+      text-align: left;
+    }
+    .restaurant-card:hover {
+      border-color: var(--rose-light);
+      transform: translateY(-3px);
+      box-shadow: 0 6px 24px rgba(233,30,99,.18);
+    }
+    .restaurant-card .r-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.05rem;
+      color: var(--rose-dark);
+      font-weight: 700;
+      margin-bottom: .3rem;
+    }
+    .restaurant-card .r-cuisine {
+      font-size: .78rem;
+      color: var(--muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: .5rem;
+    }
+    .restaurant-card .r-addr {
+      font-size: .82rem;
+      color: #888;
+      line-height: 1.4;
+    }
+    .restaurant-card .r-cta {
+      display: inline-block;
+      margin-top: .8rem;
+      font-size: .82rem;
+      font-weight: 700;
+      color: var(--rose);
+      text-decoration: none;
+    }
+    .restaurant-card .r-cta:hover { text-decoration: underline; }
+
+    /* ── Loader ── */
+    .loader {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+    .spinner {
+      width: 52px; height: 52px;
+      border: 4px solid var(--blush);
+      border-top-color: var(--rose);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loader p { color: var(--muted); font-style: italic; }
+
+    /* ── Error / empty state ── */
+    .empty-state { color: var(--muted); font-style: italic; margin: 1.5rem 0; }
+
+    /* ── Congrats ── */
+    #screen-confirm .card { max-width: 460px; }
+    #screen-confirm h1 { font-size: 2rem; }
+    .big-emoji { font-size: 3.5rem; margin-bottom: 1rem; display: block; }
+
+    /* ── Responsive tweaks ── */
+    @media (max-width: 480px) {
+      .card { padding: 2rem 1.5rem; }
+      .cuisine-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Floating hearts background -->
+<div id="hearts-bg"></div>
+
+<!-- ══════════════════════════════════════════
+     Screen 1 — Landing
+══════════════════════════════════════════ -->
+<div id="screen-landing" class="screen active">
+  <div class="card">
+    <h1>Do you want to go on a <em>date</em> with me? 🌹</h1>
+    <p class="subtitle">I promise I'll be on my best behaviour&nbsp;💕</p>
+    <div id="landing-buttons">
+      <button class="btn btn-yes" id="btn-yes" onclick="goTo('screen-datetime')">
+        Yes! 🥰
+      </button>
+      <button class="btn btn-no" id="btn-no">
+        No 😢
+      </button>
+    </div>
+<!-- ══════════════════════════════════════════
+     Screen 2 — Date & time picker
+══════════════════════════════════════════ -->
+<div id="screen-datetime" class="screen">
+  <div class="card">
+    <h1>When are you <em>available</em>? 📅</h1>
+    <p class="subtitle">Pick a date and time and I'll make it magical ✨</p>
+    <div class="field-group">
+      <div>
+        <label for="pick-date">Choose a date</label>
+        <input type="date" id="pick-date" />
+      </div>
+      <div>
+        <label for="pick-time">Choose a time</label>
+        <input type="time" id="pick-time" />
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="submitDatetime()">Next →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     Screen 3 — Cuisine picker
+══════════════════════════════════════════ -->
+<div id="screen-cuisine" class="screen">
+  <div class="card">
+    <h1>What <em>cuisine</em> do you fancy? 🍽️</h1>
+    <p class="subtitle">Pick one or more — I love a foodie 😍</p>
+    <div class="cuisine-grid" id="cuisine-grid"></div>
+    <button class="btn btn-primary" onclick="submitCuisine()">Find restaurants →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     Screen 4 — Loading
+══════════════════════════════════════════ -->
+<div id="screen-loading" class="screen">
+  <div class="card">
+    <div class="loader">
+      <div class="spinner"></div>
+      <p id="loading-text">Finding the best spots near you…</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     Screen 5 — Restaurant results
+══════════════════════════════════════════ -->
+<div id="screen-results" class="screen">
+  <div class="card" style="max-width:720px">
+    <h1 id="results-heading">Your perfect <em>date spots</em> 🌆</h1>
+    <p class="subtitle" id="results-sub"></p>
+    <div class="restaurant-grid" id="restaurant-grid"></div>
+    <button class="btn btn-secondary" onclick="goTo('screen-cuisine')" style="margin-top:.5rem">← Change cuisine</button>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════
+   State
+══════════════════════════════════════════ */
+const state = {
+  date: null,
+  time: null,
+  cuisines: [],
+  location: null,
+};
+
+/* ══════════════════════════════════════════
+   Floating hearts
+══════════════════════════════════════════ */
+(function spawnHearts() {
+  const container = document.getElementById('hearts-bg');
+  const symbols = ['♥','💕','🌹','✨','💫'];
+  for (let i = 0; i < 18; i++) {
+    const h = document.createElement('span');
+    h.className = 'heart-particle';
+    h.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+    h.style.left = Math.random() * 100 + 'vw';
+    h.style.fontSize = (.8 + Math.random() * 1.4) + 'rem';
+    h.style.animationDuration = (8 + Math.random() * 14) + 's';
+    h.style.animationDelay = (Math.random() * 12) + 's';
+    container.appendChild(h);
+  }
+})();
+
+/* ══════════════════════════════════════════
+   Screen transitions
+══════════════════════════════════════════ */
+function goTo(screenId) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
+}
+
+/* ══════════════════════════════════════════
+   Fleeing "No" button
+══════════════════════════════════════════ */
+(function initNoButton() {
+  const btn = document.getElementById('btn-no');
+  let lastEscape = 0;
+
+  // Lift the button to fixed positioning while keeping visual position identical.
+  // Must run after the browser has laid out the page so getBoundingClientRect is accurate.
+  document.addEventListener('DOMContentLoaded', () => {
+    const rect = btn.getBoundingClientRect();
+
+    // Insert a same-size placeholder so the flex row doesn't collapse
+    const spacer = document.createElement('div');
+    spacer.style.cssText = `display:inline-block;width:${rect.width}px;height:${rect.height}px;flex-shrink:0;`;
+    btn.parentNode.replaceChild(spacer, btn);
+    document.body.appendChild(btn);
+
+    // Pin button exactly where it was — no transition yet
+    btn.style.cssText += `left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;`;
+    btn.classList.add('floating');
+  });
+
+  function escape(cursorX, cursorY) {
+    if (!btn.classList.contains('floating')) return;
+    const now = Date.now();
+    if (now - lastEscape < 100) return;
+    lastEscape = now;
+
+    const rect  = btn.getBoundingClientRect();
+    const btnCx = rect.left + rect.width  / 2;
+    const btnCy = rect.top  + rect.height / 2;
+    const dist  = Math.hypot(cursorX - btnCx, cursorY - btnCy);
+
+    if (dist < 160) {
+      const angle  = Math.atan2(btnCy - cursorY, btnCx - cursorX) + (Math.random() - .5) * 1.4;
+      const len    = 180 + Math.random() * 140;
+      const margin = 10;
+      let nx = rect.left + Math.cos(angle) * len;
+      let ny = rect.top  + Math.sin(angle) * len;
+      nx = Math.max(margin, Math.min(window.innerWidth  - rect.width  - margin, nx));
+      ny = Math.max(margin, Math.min(window.innerHeight - rect.height - margin, ny));
+      btn.style.left = nx + 'px';
+      btn.style.top  = ny + 'px';
+    }
+  }
+
+  document.addEventListener('mousemove', (e) => {
+    if (!document.getElementById('screen-landing').classList.contains('active')) return;
+    escape(e.clientX, e.clientY);
+  });
+
+  document.addEventListener('touchmove', (e) => {
+    escape(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+})();
+
+/* ══════════════════════════════════════════
+   Screen 2 — datetime submit
+══════════════════════════════════════════ */
+function submitDatetime() {
+  const d = document.getElementById('pick-date').value;
+  const t = document.getElementById('pick-time').value;
+  if (!d || !t) {
+    alert('Please pick both a date and a time 💕');
+    return;
+  }
+  state.date = d;
+  state.time = t;
+  buildCuisineGrid();
+  goTo('screen-cuisine');
+}
+
+/* ══════════════════════════════════════════
+   Screen 3 — cuisine grid
+══════════════════════════════════════════ */
+const CUISINES = [
+  { name: 'Italian',       emoji: '🍝', tags: 'italian|pasta|pizza' },
+  { name: 'Japanese',      emoji: '🍣', tags: 'japanese|sushi|ramen' },
+  { name: 'Chinese',       emoji: '🥟', tags: 'chinese|dim_sum|cantonese' },
+  { name: 'Mexican',       emoji: '🌮', tags: 'mexican|tex-mex' },
+  { name: 'Indian',        emoji: '🍛', tags: 'indian|curry' },
+  { name: 'French',        emoji: '🥐', tags: 'french' },
+  { name: 'Thai',          emoji: '🍜', tags: 'thai' },
+  { name: 'American',      emoji: '🍔', tags: 'american|burger|bbq|steak_house' },
+  { name: 'Mediterranean', emoji: '🫒', tags: 'mediterranean|greek|turkish' },
+  { name: 'Korean',        emoji: '🥩', tags: 'korean' },
+  { name: 'Spanish',       emoji: '🥘', tags: 'spanish|tapas' },
+  { name: 'Seafood',       emoji: '🦞', tags: 'seafood|fish_and_chips|fish' },
+];
+
+function buildCuisineGrid() {
+  const grid = document.getElementById('cuisine-grid');
+  grid.innerHTML = '';
+  state.cuisines = [];
+  CUISINES.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'cuisine-card';
+    el.innerHTML = `<span class="emoji">${c.emoji}</span><span class="name">${c.name}</span>`;
+    el.addEventListener('click', () => {
+      el.classList.toggle('selected');
+      if (el.classList.contains('selected')) {
+        state.cuisines.push(c);
+      } else {
+        state.cuisines = state.cuisines.filter(x => x.name !== c.name);
+      }
+    });
+    grid.appendChild(el);
+  });
+}
+
+function submitCuisine() {
+  if (state.cuisines.length === 0) {
+    alert('Please select at least one cuisine 🍽️');
+    return;
+  }
+  goTo('screen-loading');
+  fetchEverything();
+}
+
+/* ══════════════════════════════════════════
+   Fetch location + restaurants
+══════════════════════════════════════════ */
+async function fetchEverything() {
+  try {
+    // 1. IP geolocation
+    document.getElementById('loading-text').textContent = 'Detecting your city… 📍';
+    const geo = await fetch('https://ipapi.co/json/').then(r => r.json());
+    if (!geo.latitude) throw new Error('Could not detect location');
+
+    state.location = geo;
+    document.getElementById('loading-text').textContent =
+      `Searching restaurants in ${geo.city}… 🔍`;
+
+    // 2. Overpass query
+    const tagsRegex = state.cuisines.map(c => c.tags).join('|');
+    const query = `
+      [out:json][timeout:30];
+      (
+        node["amenity"="restaurant"]["cuisine"~"${tagsRegex}",i](around:6000,${geo.latitude},${geo.longitude});
+        way["amenity"="restaurant"]["cuisine"~"${tagsRegex}",i](around:6000,${geo.latitude},${geo.longitude});
+      );
+      out body;
+    `.trim();
+
+    const overpass = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: query,
+    }).then(r => r.json());
+
+    // 3. Deduplicate by name
+    const seen = new Set();
+    const restaurants = overpass.elements
+      .filter(el => el.tags && el.tags.name)
+      .filter(el => {
+        if (seen.has(el.tags.name.toLowerCase())) return false;
+        seen.add(el.tags.name.toLowerCase());
+        return true;
+      })
+      .slice(0, 24);
+
+    showResults(restaurants, geo);
+  } catch (err) {
+    console.error(err);
+    showResults([], null, err.message);
+  }
+}
+
+/* ══════════════════════════════════════════
+   Screen 5 — display results
+══════════════════════════════════════════ */
+function showResults(restaurants, geo, errorMsg) {
+  const grid = document.getElementById('restaurant-grid');
+  const heading = document.getElementById('results-heading');
+  const sub = document.getElementById('results-sub');
+  grid.innerHTML = '';
+
+  const dateStr = state.date
+    ? new Date(state.date + 'T12:00:00').toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long' })
+    : '';
+  const timeStr = state.time || '';
+  const cuisineNames = state.cuisines.map(c => c.name).join(', ');
+
+  heading.innerHTML = `Perfect spots for your date 🌆`;
+  if (geo) {
+    sub.textContent = `${dateStr} at ${timeStr} · ${cuisineNames} · near ${geo.city}`;
+  }
+
+  if (errorMsg || restaurants.length === 0) {
+    // Fallback: show Google Maps search links per cuisine
+    grid.innerHTML = '';
+    const fallbackMsg = document.createElement('p');
+    fallbackMsg.className = 'empty-state';
+    fallbackMsg.textContent = geo
+      ? `We couldn't load live data right now — try searching directly:`
+      : `Couldn't detect your location. Try searching directly:`;
+    grid.before(fallbackMsg);
+
+    state.cuisines.forEach(c => {
+      const card = buildFallbackCard(c, geo);
+      grid.appendChild(card);
+    });
+  } else {
+    restaurants.forEach(r => {
+      const card = buildRestaurantCard(r, geo);
+      grid.appendChild(card);
+    });
+  }
+
+  goTo('screen-results');
+}
+
+function buildRestaurantCard(r, geo) {
+  const t = r.tags;
+  const name    = t.name;
+  const cuisine = (t.cuisine || '').replace(/_/g, ' ').replace(/;/g, ' · ');
+  const street  = t['addr:street']  || '';
+  const number  = t['addr:housenumber'] || '';
+  const city    = t['addr:city']    || (geo ? geo.city : '');
+  const addr    = [number && street ? `${number} ${street}` : street, city].filter(Boolean).join(', ');
+
+  // Determine link: prefer website, fallback to Google Maps query
+  const website = t.website || t['contact:website'] || t['url'] || null;
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name + ' ' + city)}`;
+  const href    = website || mapsUrl;
+  const ctaText = website ? 'Visit website & book →' : 'Find on Google Maps →';
+
+  const card = document.createElement('div');
+  card.className = 'restaurant-card';
+  card.innerHTML = `
+    <div class="r-name">${esc(name)}</div>
+    ${cuisine ? `<div class="r-cuisine">${esc(cuisine)}</div>` : ''}
+    ${addr    ? `<div class="r-addr">📍 ${esc(addr)}</div>` : ''}
+    ${t.phone || t['contact:phone'] ? `<div class="r-addr">📞 ${esc(t.phone || t['contact:phone'])}</div>` : ''}
+    <a class="r-cta" href="${href}" target="_blank" rel="noopener">${ctaText}</a>
+  `;
+  return card;
+}
+
+function buildFallbackCard(cuisine, geo) {
+  const city = geo ? geo.city : 'your city';
+  const q = encodeURIComponent(`${cuisine.name} restaurants in ${city}`);
+  const card = document.createElement('div');
+  card.className = 'restaurant-card';
+  card.innerHTML = `
+    <div style="font-size:2rem;margin-bottom:.5rem">${cuisine.emoji}</div>
+    <div class="r-name">${cuisine.name} restaurants</div>
+    <div class="r-addr">in ${city}</div>
+    <a class="r-cta" href="https://www.google.com/maps/search/${q}" target="_blank" rel="noopener">Search on Google Maps →</a>
+  `;
+  return card;
+}
+
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+/* ══════════════════════════════════════════
+   Set min date to today
+══════════════════════════════════════════ */
+document.getElementById('pick-date').min = new Date().toISOString().split('T')[0];
+</script>
+</body>
+</html>
