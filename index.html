@@ -286,6 +286,47 @@
 
     .loader p { color: var(--muted); font-style: italic; }
 
+    /* ── Selected restaurant ── */
+    .restaurant-card.selected {
+      border-color: var(--rose);
+      background: #fff0f5;
+      box-shadow: 0 6px 24px rgba(233,30,99,.25);
+    }
+    .restaurant-card.selected::after {
+      content: '✓';
+      position: absolute;
+      top: .7rem; right: .9rem;
+      background: var(--rose);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      width: 1.4rem; height: 1.4rem;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .restaurant-card { position: relative; }
+
+    /* ── Send button ── */
+    .btn-send {
+      margin-top: 1.4rem;
+      background: linear-gradient(135deg, var(--rose), var(--rose-dark));
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(233,30,99,.35);
+      font-size: 1.05rem;
+      padding: .9rem 2.4rem;
+      opacity: .45;
+      cursor: not-allowed;
+      transition: opacity .2s, box-shadow .2s, transform .15s;
+    }
+    .btn-send:not([disabled]) {
+      opacity: 1;
+      cursor: pointer;
+    }
+    .btn-send:not([disabled]):hover {
+      box-shadow: 0 6px 28px rgba(233,30,99,.55);
+      transform: translateY(-2px);
+    }
+
     /* ── Error / empty state ── */
     .empty-state { color: var(--muted); font-style: italic; margin: 1.5rem 0; }
 
@@ -379,6 +420,10 @@
     <div class="restaurant-grid" id="restaurant-grid"></div>
     <button class="btn btn-secondary" onclick="goTo('screen-cuisine')" style="margin-top:.5rem">← Change cuisine</button>
     <p style="margin-top:1.2rem;color:var(--muted);font-style:italic;font-size:.95rem;">Explore the menu's and let me know which one you want to book 💕</p>
+    <button class="btn btn-send" id="btn-send" onclick="sendToDate()" disabled>
+      💌 Send to my date
+    </button>
+    <p id="send-status" style="margin-top:.8rem;font-size:.88rem;min-height:1.2em;"></p>
   </div>
 </div>
 
@@ -391,6 +436,7 @@ const state = {
   time: null,
   cuisines: [],
   location: null,
+  selectedRestaurant: null,
 };
 
 /* ══════════════════════════════════════════
@@ -599,6 +645,11 @@ function showResults(restaurants, geo, errorMsg) {
   const heading = document.getElementById('results-heading');
   const sub = document.getElementById('results-sub');
   grid.innerHTML = '';
+  state.selectedRestaurant = null;
+  const sendBtn = document.getElementById('btn-send');
+  if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '💌 Send to my date'; }
+  const statusEl = document.getElementById('send-status');
+  if (statusEl) statusEl.textContent = '';
 
   const dateStr = state.date
     ? new Date(state.date + 'T12:00:00').toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long' })
@@ -635,6 +686,16 @@ function showResults(restaurants, geo, errorMsg) {
   goTo('screen-results');
 }
 
+function selectCard(card, data) {
+  // Deselect all cards
+  document.querySelectorAll('.restaurant-card.selected').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  state.selectedRestaurant = data;
+  const btn = document.getElementById('btn-send');
+  btn.disabled = false;
+  document.getElementById('send-status').textContent = '';
+}
+
 function buildRestaurantCard(r, geo) {
   const t = r.tags;
   const name    = t.name;
@@ -644,7 +705,6 @@ function buildRestaurantCard(r, geo) {
   const city    = t['addr:city']    || (geo ? geo.city : '');
   const addr    = [number && street ? `${number} ${street}` : street, city].filter(Boolean).join(', ');
 
-  // Determine link: prefer website, fallback to Google Maps query
   const website = t.website || t['contact:website'] || t['url'] || null;
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name + ' ' + city)}`;
   const href    = website || mapsUrl;
@@ -659,21 +719,89 @@ function buildRestaurantCard(r, geo) {
     ${t.phone || t['contact:phone'] ? `<div class="r-addr">📞 ${esc(t.phone || t['contact:phone'])}</div>` : ''}
     <a class="r-cta" href="${href}" target="_blank" rel="noopener">${ctaText}</a>
   `;
+  card.addEventListener('click', (e) => {
+    // Don't hijack link clicks
+    if (e.target.tagName === 'A') return;
+    selectCard(card, { name, cuisine, addr, href });
+  });
   return card;
 }
 
 function buildFallbackCard(cuisine, geo) {
   const city = geo ? geo.city : 'your city';
   const q = encodeURIComponent(`${cuisine.name} restaurants in ${city}`);
+  const href = `https://www.google.com/maps/search/${q}`;
   const card = document.createElement('div');
   card.className = 'restaurant-card';
   card.innerHTML = `
     <div style="font-size:2rem;margin-bottom:.5rem">${cuisine.emoji}</div>
     <div class="r-name">${cuisine.name} restaurants</div>
     <div class="r-addr">in ${city}</div>
-    <a class="r-cta" href="https://www.google.com/maps/search/${q}" target="_blank" rel="noopener">Search on Google Maps →</a>
+    <a class="r-cta" href="${href}" target="_blank" rel="noopener">Search on Google Maps →</a>
   `;
+  card.addEventListener('click', (e) => {
+    if (e.target.tagName === 'A') return;
+    selectCard(card, { name: `${cuisine.name} restaurants in ${city}`, cuisine: cuisine.name, addr: city, href });
+  });
   return card;
+}
+
+async function sendToDate() {
+  const btn = document.getElementById('btn-send');
+  const status = document.getElementById('send-status');
+  const r = state.selectedRestaurant;
+  if (!r) return;
+
+  const dateStr = state.date
+    ? new Date(state.date + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    : state.date;
+
+  const message = `
+Hi! 💕
+
+Someone special has been planning a date and picked a restaurant for you both!
+
+📅 Date: ${dateStr}
+🕐 Time: ${state.time}
+🍽️ Cuisine: ${state.cuisines.map(c => c.name).join(', ')}
+🌆 Restaurant: ${r.name}
+${r.addr ? `📍 Address: ${r.addr}` : ''}
+${r.href ? `🔗 Book here: ${r.href}` : ''}
+
+Let them know if it works for you! 🌹
+  `.trim();
+
+  btn.disabled = true;
+  btn.textContent = 'Sending… 💌';
+  status.style.color = 'var(--muted)';
+  status.textContent = '';
+
+  try {
+    const res = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        access_key: '315d8e95-02d6-47ac-b016-157fb7448368',
+        subject: `Date night at ${r.name}! 🌹`,
+        from_name: 'Your Secret Admirer 💕',
+        to: 'laura-denby@live.com',
+        message,
+      }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      btn.textContent = '✓ Sent!';
+      status.style.color = 'var(--rose)';
+      status.textContent = 'Your date has been sent the details 🌹';
+    } else {
+      throw new Error(data.message || 'Send failed');
+    }
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = '💌 Send to my date';
+    status.style.color = '#c0392b';
+    status.textContent = 'Something went wrong — please try again.';
+  }
 }
 
 function esc(str) {
