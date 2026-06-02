@@ -321,6 +321,9 @@
         No 😢
       </button>
     </div>
+  </div>
+</div>
+
 <!-- ══════════════════════════════════════════
      Screen 2 — Date & time picker
 ══════════════════════════════════════════ -->
@@ -413,6 +416,9 @@ const state = {
 function goTo(screenId) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(screenId).classList.add('active');
+  // Only show the No button on the landing screen
+  const noBtn = document.getElementById('btn-no');
+  if (noBtn) noBtn.style.display = screenId === 'screen-landing' ? '' : 'none';
 }
 
 /* ══════════════════════════════════════════
